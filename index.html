@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Adkar Dashboard Bcm",
+  "schemaVersion": 1,
+  "description": "Interactive ADKAR dashboard — BCM/CBU Proximus. Multi-wave versioning, editable verbatim splits, raw data tab, fully dynamic recommendations."
+}
+</script>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI ADKAR Dashboard — BCM/CBU</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+:root{color-scheme:light;--p:#5C2D91;--pk:#D12E67;--cy:#00BCEE;--or:#F39200;--gr:#81C747;--tl:#66D2CC;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Arial,sans-serif;background:#f4f4f6;color:#222;min-height:100vh;}
+
+/* ── Header ──────────────────────────────────────────────────────── */
+.hdr{background:linear-gradient(135deg,#5C2D91,#D12E67);padding:14px 20px;color:#fff;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+.hdr h1{font-size:18px;font-weight:300;line-height:1.3;}
+.hdr .sub{font-size:11px;opacity:.85;margin-top:2px;}
+.hdr-right{display:flex;gap:8px;align-items:center;flex-shrink:0;}
+.imp-btn{background:#fff;color:#5C2D91;border:none;padding:7px 13px;border-radius:20px;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.imp-btn:hover{background:#f0e8f8;}
+.hist-btn{background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.5);padding:7px 13px;border-radius:20px;font-size:11.5px;font-weight:600;cursor:pointer;white-space:nowrap;}
+.hist-btn:hover{background:rgba(255,255,255,.3);}
+
+/* ── Version banner ───────────────────────────────────────────────── */
+.vbanner{background:#fff;border-bottom:1px solid #e0e0e0;padding:7px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;}
+.vbanner-lbl{font-weight:700;color:#5C2D91;white-space:nowrap;}
+.vpill{padding:4px 11px;border-radius:16px;font-size:11px;font-weight:600;cursor:pointer;border:2px solid #ddd;background:#f4f4f6;color:#666;transition:all .15s;white-space:nowrap;}
+.vpill.active{background:#5C2D91;color:#fff;border-color:#5C2D91;}
+.vpill:hover:not(.active){border-color:#5C2D91;color:#5C2D91;}
+.vdel{padding:3px 8px;border-radius:12px;font-size:10px;background:transparent;border:1px solid #ccc;color:#999;cursor:pointer;margin-left:2px;}
+.vdel:hover{border-color:#D12E67;color:#D12E67;}
+
+/* ── Tabs ─────────────────────────────────────────────────────────── */
+.tabs{background:#fff;border-bottom:2px solid #e0e0e0;display:flex;padding:0 16px;overflow-x:auto;}
+.tab{padding:11px 13px;font-size:12px;font-weight:600;color:#777;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .15s;}
+.tab:hover{color:#5C2D91;}
+.tab.active{color:#5C2D91;border-bottom-color:#5C2D91;}
+
+/* ── Layout ───────────────────────────────────────────────────────── */
+.content{padding:18px;max-width:1100px;margin:0 auto;}
+.panel{display:none;}.panel.active{display:block;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;}
+@media(max-width:700px){.row2,.row3{grid-template-columns:1fr;}}
+
+/* ── Cards ────────────────────────────────────────────────────────── */
+.card{background:#fff;border-radius:10px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:14px;}
+.card:last-child{margin-bottom:0;}
+.sec{font-size:12.5px;font-weight:700;color:#5C2D91;margin-bottom:10px;}
+.stat{text-align:center;}
+.stat .num{font-size:34px;font-weight:700;color:#5C2D91;}
+.stat .lbl{font-size:11px;color:#666;margin-top:3px;}
+
+/* ── ADKAR bars ───────────────────────────────────────────────────── */
+.arow{display:flex;align-items:center;margin-bottom:9px;}
+.albl{width:120px;font-size:11.5px;flex-shrink:0;}
+.atrack{flex:1;height:22px;background:#ebebeb;border-radius:4px;overflow:hidden;position:relative;}
+.afill{height:100%;border-radius:4px;transition:width .7s ease;}
+.agline{position:absolute;top:0;width:2px;height:100%;background:rgba(0,0,0,.25);}
+.ascr{width:42px;text-align:right;font-size:12.5px;font-weight:700;margin-left:8px;}
+
+/* ── Gap panel ────────────────────────────────────────────────────── */
+.gap-wrap{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin-bottom:14px;}
+@media(max-width:700px){.gap-wrap{grid-template-columns:1fr;}}
+.gap-col{background:#fff;border-radius:10px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.07);}
+.gap-col.hi{border-top:4px solid #81C747;}.gap-col.lo{border-top:4px solid #F39200;}
+.gtitle{font-size:12px;font-weight:700;margin-bottom:8px;}
+.gap-col.hi .gtitle{color:#4a8a00;}.gap-col.lo .gtitle{color:#906000;}
+.gitem{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #f0f0f0;}
+.gdim{font-size:11.5px;}.gscr{font-weight:700;font-size:13.5px;}
+.gscr.g{color:#4a8a00;}.gscr.o{color:#906000;}.gscr.r{color:#8b0000;}
+.gap-mid{text-align:center;}
+.gap-arr{font-size:26px;color:#D12E67;font-weight:700;}
+.gap-badge{background:#D12E67;color:#fff;border-radius:8px;padding:6px 8px;font-size:11px;font-weight:700;margin-top:4px;}
+
+/* ── Tables ───────────────────────────────────────────────────────── */
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{background:#5C2D91;color:#fff;padding:8px 10px;text-align:center;font-weight:600;}
+th:first-child{text-align:left;}
+td{padding:7px 10px;border-bottom:1px solid #eee;text-align:center;}
+td:first-child{text-align:left;font-weight:600;}
+tr:nth-child(even) td{background:#fafafa;}
+tr.glb td{background:#D4C5E8;font-weight:700;}
+
+/* ── Pills ────────────────────────────────────────────────────────── */
+.pills{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;}
+.pill{padding:5px 13px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:2px solid #ddd;background:#fff;color:#666;transition:all .15s;}
+.pill.active{background:#5C2D91;color:#fff;border-color:#5C2D91;}
+
+/* ── Quotes (by-team preview) ─────────────────────────────────────── */
+.qbox{background:#ebebeb;border-radius:7px;padding:10px 12px;margin-bottom:7px;font-size:11px;font-style:italic;color:#333;border-left:3px solid #5C2D91;}
+.qtype{font-weight:700;font-style:normal;color:#5C2D91;font-size:10px;margin-bottom:3px;}
+.qscroll{max-height:270px;overflow-y:auto;}
+
+/* ── Rec cards ────────────────────────────────────────────────────── */
+.rgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+@media(max-width:700px){.rgrid{grid-template-columns:1fr;}}
+.rcard{background:#D4C5E8;border-radius:10px;padding:15px;}
+.rnum{display:inline-flex;width:28px;height:28px;background:#5C2D91;border-radius:50%;color:#fff;align-items:center;justify-content:center;font-weight:700;font-size:12px;margin-bottom:7px;}
+.rtitle{font-weight:700;font-size:12.5px;color:#5C2D91;margin-bottom:5px;}
+.rdesc{font-size:11px;color:#333;line-height:1.6;}
+.rchip{display:inline-block;background:#5C2D91;color:#fff;border-radius:5px;padding:1px 6px;font-size:10px;font-weight:700;font-style:normal;margin:0 2px;}
+.rchip.warn{background:#D12E67;}.rchip.ok{background:#4a8a00;}
+
+/* ── Timeline ─────────────────────────────────────────────────────── */
+.tl-item{display:flex;gap:10px;align-items:flex-start;margin-bottom:12px;}
+.tl-dot{width:12px;height:12px;border-radius:50%;background:#5C2D91;flex-shrink:0;margin-top:4px;}
+.tl-date{background:#D4C5E8;color:#5C2D91;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:9px;white-space:nowrap;}
+.tl-act{font-size:11.5px;color:#333;flex:1;}
+
+/* ── Alert ────────────────────────────────────────────────────────── */
+.alert{background:#D4C5E8;border-radius:8px;padding:10px 14px;font-size:12px;color:#5C2D91;margin-bottom:14px;}
+
+/* ── Charts ───────────────────────────────────────────────────────── */
+.ch{position:relative;}.ch-lg{height:360px;}.ch-sm{height:210px;}
+.legend{display:flex;gap:14px;font-size:10.5px;flex-wrap:wrap;margin-top:8px;}
+.ldot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:middle;}
+
+/* ── Modals ───────────────────────────────────────────────────────── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;}
+.overlay.on{display:flex;}
+.modal{background:#fff;border-radius:12px;padding:24px;max-width:500px;width:90%;max-height:90vh;overflow-y:auto;}
+.modal h3{color:#5C2D91;margin-bottom:10px;font-size:16px;}
+.modal p{font-size:12px;color:#555;line-height:1.65;margin-bottom:10px;}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;}
+.btn{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;}
+.btn-p{background:#5C2D91;color:#fff;}.btn-s{background:#eee;color:#333;}.btn-d{background:#D12E67;color:#fff;}
+.hlist{max-height:320px;overflow-y:auto;}
+.hitem{display:flex;align-items:center;justify-content:space-between;padding:10px;border-bottom:1px solid #eee;gap:8px;}
+.hitem:last-child{border-bottom:none;}
+.hitem-info{flex:1;}
+.hitem-name{font-weight:700;font-size:12.5px;color:#5C2D91;}
+.hitem-meta{font-size:11px;color:#888;margin-top:2px;}
+.hitem.baseline .hitem-name{color:#666;}
+.active-badge{background:#81C747;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;}
+.wave-input{width:100%;border:1px solid #ccc;border-radius:6px;padding:7px 10px;font-size:12px;margin:6px 0 10px;}
+.wave-input:focus{outline:none;border-color:#5C2D91;}
+
+/* ── Usage ────────────────────────────────────────────────────────── */
+.ublock{background:#D4C5E8;border-radius:8px;padding:9px 12px;text-align:center;flex:1;}
+.ublock .un{font-size:20px;font-weight:700;color:#5C2D91;}
+.ublock .ul{font-size:10px;color:#666;}
+.urow{display:flex;gap:8px;margin-bottom:8px;}
+
+/* ── Verbatim tab ─────────────────────────────────────────────────── */
+.vteam-selector{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px;align-items:center;}
+.vteam-pill{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:2px solid #ddd;background:#fff;color:#666;transition:all .15s;}
+.vteam-pill.active{background:#5C2D91;color:#fff;border-color:#5C2D91;}
+.vteam-pill.all{border-color:#D12E67;color:#D12E67;}
+.vteam-pill.all.active{background:#D12E67;color:#fff;}
+.vcols{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:700px){.vcols{grid-template-columns:1fr;}}
+.vcol-head{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.vcol-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.vcol-icon.pos{background:#d4edda;}.vcol-icon.imp{background:#fce8d3;}
+.vcol-title{font-size:13px;font-weight:700;}
+.vcol-title.pos{color:#2d6a4f;}.vcol-title.imp{color:#7d4300;}
+.vq{background:#fff;border-radius:8px;padding:10px 13px;margin-bottom:8px;font-size:11.5px;color:#333;line-height:1.6;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.vq.pos{border-left:4px solid #81C747;}.vq.imp{border-left:4px solid #F39200;}
+.vq-team{display:inline-block;background:#D4C5E8;color:#5C2D91;font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:5px;margin-bottom:5px;}
+.vq-text{font-style:italic;margin-bottom:7px;}
+.vq-move{display:inline-block;padding:3px 9px;border-radius:10px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid #ccc;background:#f7f7f7;color:#555;transition:all .15s;margin-top:2px;}
+.vq-move:hover{background:#D4C5E8;color:#5C2D91;border-color:#5C2D91;}
+.vempty{font-size:12px;color:#aaa;padding:10px 0;}
+.vteam-block{margin-bottom:20px;}
+.vteam-block-title{font-size:13px;font-weight:700;color:#5C2D91;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #D4C5E8;}
+.vcount{display:inline-block;background:#5C2D91;color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 7px;margin-left:6px;}
+.vcount.imp{background:#D12E67;}
+
+/* ── Raw data tab ─────────────────────────────────────────────────── */
+.raw-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+.raw-pill{padding:4px 12px;border-radius:16px;font-size:11.5px;font-weight:600;cursor:pointer;border:2px solid #ddd;background:#fff;color:#666;transition:all .15s;}
+.raw-pill.active{background:#5C2D91;color:#fff;border-color:#5C2D91;}
+.raw-table-wrap{overflow-x:auto;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.07);}
+.raw-table{width:100%;border-collapse:collapse;font-size:11px;min-width:900px;}
+.raw-table th{background:#5C2D91;color:#fff;padding:8px 10px;text-align:center;font-weight:600;position:sticky;top:0;white-space:nowrap;}
+.raw-table th:first-child,.raw-table th:nth-child(2){text-align:left;}
+.raw-table td{padding:6px 10px;border-bottom:1px solid #eee;text-align:center;vertical-align:top;}
+.raw-table td:first-child{text-align:center;color:#999;font-weight:400;}
+.raw-table td:nth-child(2){text-align:left;font-weight:600;}
+.raw-table tr:nth-child(even) td{background:#fafafa;}
+.raw-table .comment{text-align:left;font-style:italic;color:#444;font-size:10.5px;max-width:200px;}
+.raw-notice{background:#D4C5E8;border-radius:10px;padding:20px;text-align:center;color:#5C2D91;font-size:13px;}
+.raw-notice strong{display:block;font-size:16px;margin-bottom:6px;}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="hdr">
+  <div>
+    <h1>AI Transformation — ADKAR Survey</h1>
+    <div class="sub">BCM / CBU · Communication, Branding &amp; Media</div>
+  </div>
+  <div class="hdr-right">
+    <button class="hist-btn" onclick="document.getElementById('hist-modal').classList.add('on')">🕓 History</button>
+    <button class="imp-btn" onclick="document.getElementById('imp-modal').classList.add('on')">⬆ Import CSV</button>
+  </div>
+</div>
+
+<!-- Version banner -->
+<div class="vbanner">
+  <span class="vbanner-lbl">Active wave:</span>
+  <div id="vbanner-pills" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;"></div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('global')">📊 Global View</div>
+  <div class="tab" onclick="switchTab('teams')">👥 By Team</div>
+  <div class="tab" onclick="switchTab('trainings')">📚 Trainings</div>
+  <div class="tab" onclick="switchTab('usage')">📈 Usage</div>
+  <div class="tab" onclick="switchTab('verbatim')">💬 Verbatim</div>
+  <div class="tab" onclick="switchTab('recs')">💡 Recommendations</div>
+  <div class="tab" onclick="switchTab('rawdata')">🗂 Raw Data</div>
+</div>
+
+<!-- Content -->
+<div class="content">
+
+<!-- TAB: Global View -->
+<div class="panel active" id="tab-global">
+  <div class="row3">
+    <div class="card stat"><div class="num" id="sn">—</div><div class="lbl">Respondents</div></div>
+    <div class="card stat"><div class="num" id="sui">—</div><div class="lbl">have used AI (6 months)</div></div>
+    <div class="card stat"><div class="num" id="sgap">—</div><div class="lbl">pts · Knowing-Doing Gap</div></div>
+  </div>
+  <div class="card">
+    <div class="sec">ADKAR Scores — All teams</div>
+    <div id="g-bars"></div>
+    <div class="legend">
+      <span><span class="ldot" style="background:#81C747"></span>≥ 4.0 Strong</span>
+      <span><span class="ldot" style="background:#F39200"></span>3.0–3.9 Moderate</span>
+      <span><span class="ldot" style="background:#D12E67"></span>&lt; 3.0 Weak</span>
+    </div>
+  </div>
+  <div class="gap-wrap">
+    <div class="gap-col hi"><div class="gtitle">✅ The fuel is there</div><div id="gap-hi-items"></div></div>
+    <div class="gap-mid"><div class="gap-arr">→</div><div class="gap-badge" id="gdlt">—</div></div>
+    <div class="gap-col lo"><div class="gtitle">⚠ Gaps to bridge</div><div id="gap-lo-items"></div></div>
+  </div>
+  <div class="card">
+    <div class="sec">Team comparison overview</div>
+    <table><thead><tr><th>Team</th><th>Awareness</th><th>Desire</th><th>Knowledge</th><th>Ability</th><th>Reinforcement</th></tr></thead>
+    <tbody id="cmp-body"></tbody></table>
+  </div>
+</div>
+
+<!-- TAB: By Team -->
+<div class="panel" id="tab-teams">
+  <div class="pills" id="t-pills"></div>
+  <div class="row2">
+    <div>
+      <div class="card">
+        <div class="sec" id="t-title">ADKAR Scores</div>
+        <div id="t-bars"></div>
+        <div class="legend" style="margin-top:8px;"><span style="font-size:10px;color:#999;">— line = department average</span></div>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:12px;"><div class="sec">AI Usage</div><div id="t-usage"></div></div>
+      <div class="card"><div class="sec">Team verbatim (preview)</div><div class="qscroll" id="t-quotes"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB: Trainings -->
+<div class="panel" id="tab-trainings">
+  <div class="card">
+    <div class="sec">% rated "Useful" or "Very useful" (among participants)</div>
+    <div class="ch ch-lg"><canvas id="ch-train"></canvas></div>
+    <div class="legend" style="margin-top:10px;">
+      <span><span class="ldot" style="background:#81C747"></span>≥ 70% Highly rated</span>
+      <span><span class="ldot" style="background:#F39200"></span>40–69% Moderate</span>
+      <span><span class="ldot" style="background:#D12E67"></span>&lt; 40% To revise</span>
+    </div>
+  </div>
+  <div class="alert" id="train-alert"></div>
+</div>
+
+<!-- TAB: Usage -->
+<div class="panel" id="tab-usage">
+  <div class="row2">
+    <div class="card"><div class="sec">Usage frequency</div><div class="ch ch-sm"><canvas id="ch-freq"></canvas></div></div>
+    <div class="card"><div class="sec">Declared activities</div><div class="ch ch-sm"><canvas id="ch-act"></canvas></div></div>
+  </div>
+  <div class="card">
+    <div class="sec">Usage by team</div>
+    <table><thead><tr><th>Team</th><th>n</th><th>% Active</th><th>Dominant frequency</th></tr></thead>
+    <tbody id="u-body"></tbody></table>
+  </div>
+</div>
+
+<!-- TAB: Verbatim -->
+<div class="panel" id="tab-verbatim">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
+    <div class="vteam-selector" id="vteam-selector" style="margin-bottom:0;"></div>
+    <span style="font-size:11px;color:#888;">Click <strong>→ Move</strong> on any quote to reassign it. Changes are saved automatically.</span>
+  </div>
+  <div id="verbatim-content"></div>
+</div>
+
+<!-- TAB: Recommendations -->
+<div class="panel" id="tab-recs">
+  <div class="alert" id="auto-ins"></div>
+  <div class="rgrid" id="recs-grid"></div>
+  <div class="card"><div class="sec" style="margin-bottom:14px;">🗓 Next steps</div><div id="tl-body"></div></div>
+</div>
+
+<!-- TAB: Raw Data -->
+<div class="panel" id="tab-rawdata">
+  <div id="rawdata-content"></div>
+</div>
+
+</div><!-- .content -->
+
+<!-- Import Modal -->
+<div class="overlay" id="imp-modal">
+  <div class="modal">
+    <h3>⬆ Import a new wave</h3>
+    <p>Export your Excel file as <strong>CSV</strong> (File → Save As → CSV UTF-8), then import it here. Both <strong>comma</strong> and <strong>semicolon</strong> delimiters are supported.</p>
+    <label style="font-size:12px;font-weight:700;color:#5C2D91;">Wave name</label>
+    <input type="text" id="wave-name-input" class="wave-input" placeholder="e.g. Wave 2 · November 2026" />
+    <label style="font-size:12px;font-weight:700;color:#5C2D91;">CSV file</label>
+    <input type="file" id="csv-input" accept=".csv" style="font-size:12px;width:100%;margin:6px 0 10px;">
+    <p style="color:#D12E67;font-size:11px;">⚠ Columns must follow the original Microsoft Forms survey format.</p>
+    <div class="modal-btns">
+      <button class="btn btn-s" onclick="document.getElementById('imp-modal').classList.remove('on')">Cancel</button>
+      <button class="btn btn-p" onclick="importCSV()">Import &amp; save</button>
+    </div>
+  </div>
+</div>
+
+<!-- History Modal -->
+<div class="overlay" id="hist-modal">
+  <div class="modal">
+    <h3>🕓 Wave history</h3>
+    <p style="font-size:11px;color:#888;">Click on a wave to activate it. Imported waves are saved locally and persist between sessions.</p>
+    <div class="hlist" id="hist-list"></div>
+    <div class="modal-btns">
+      <button class="btn btn-s" onclick="document.getElementById('hist-modal').classList.remove('on')">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+// BASELINE DATA (Wave 1 — always present, verbatims editable)
+// ══════════════════════════════════════════════════════════════════
+const BASELINE_TEAMS_DEFAULT = {
+  "Studio":          { n:2,  Awareness:5.00, Desire:5.00, Knowledge:4.00, Ability:4.00, Reinforcement:4.50, used_pct:100, freq:["Daily","Daily"],
+    pos:["The fact that AI is necessary in our jobs, now and in the future — and that AI is part of our lives."],
+    imp:["Providing in-depth AI trainings. A list of available AI trainings would also help to see what can be followed."] },
+  "Central Station": { n:9,  Awareness:4.89, Desire:4.61, Knowledge:3.72, Ability:3.56, Reinforcement:3.78, used_pct:100,
+    freq:["Weekly","Monthly","Daily","Daily","Weekly","Weekly","Daily","Daily","Weekly"],
+    pos:["The systematic repetition to keep awareness and underline the sense of urgency","Putting someone at the center with ownership","Openness to use AI — people feel encouraged to try things and share use cases","DIY workshop","Time savings, idea generation, and key insight extraction"],
+    imp:["Short sessions that concretely showcase solutions. A centralised repository of requested use cases would help.","Sessions for BCM subteams. Demos by SILK agencies.","Make it more an AI sandbox","Role-based guidance on which AI tools are best suited for specific tasks (analysis, reporting, presentations)"] },
+  "CSE":             { n:10, Awareness:5.00, Desire:4.25, Knowledge:2.85, Ability:2.80, Reinforcement:3.10, used_pct:90,
+    freq:["Monthly","Daily","Weekly","Weekly","Weekly","Monthly","Weekly","Monthly","Monthly","N/A"],
+    pos:["Some team members are well-trained and motivated — can drive/inspire the rest","AI-workshops during homecoming were very interesting","Lots of general inspiration and concrete cases — loved the brand bot"],
+    imp:["Tool access inequality: a handful have tools that others never will","Concrete trainings per team with role-specific use cases from people doing exactly the same job","More focus at CSE team level — not general department-wide sessions"] },
+  "TEX":             { n:6,  Awareness:4.33, Desire:4.08, Knowledge:2.50, Ability:2.58, Reinforcement:2.17, used_pct:83,
+    freq:["Monthly","N/A","Weekly","Weekly","Daily","Weekly"],
+    pos:["You put effort in asking feedback and getting us all on board — that's top!","The focus on AI is really good, we have all the tools & people to move forward"],
+    imp:["Give us more training with workshops or DIY examples for TEX/POS daily work","Tackle team-specific needs rather than general department-wide info","Specific tool for a specific task (how to make shop items with AI)","Do exercises and have access to the tools during and after trainings"] },
+  "CBP":             { n:3,  Awareness:5.00, Desire:4.33, Knowledge:3.67, Ability:2.67, Reinforcement:3.00, used_pct:100,
+    freq:["Weekly","Monthly","Monthly"],
+    pos:["AEM workshops — preparing/anticipating change","Tailor-made training end of May","Talking about AI and putting it on the map"],
+    imp:["Monthly RDV with practical cases in our CBP field","Give us more quick wins tricks around AI","Move out of buzz-word phase — concretely show AI in daily CBP job + a hub with all useful tools"] }
+};
+
+// Deep-clone helper
+function deepClone(obj){ return JSON.parse(JSON.stringify(obj)); }
+
+// Load persisted baseline verbatim overrides
+const LS_BASELINE_VERB = "adkar_bcm_baseline_verb_v1";
+function loadBaselineVerbOverrides(){
+  try{ return JSON.parse(localStorage.getItem(LS_BASELINE_VERB))||null; }catch(e){return null;}
+}
+function saveBaselineVerbOverrides(teams){
+  try{
+    const toSave={};
+    Object.entries(teams).forEach(([name,t])=>{toSave[name]={pos:[...t.pos],imp:[...t.imp]};});
+    localStorage.setItem(LS_BASELINE_VERB, JSON.stringify(toSave));
+  }catch(e){}
+}
+
+// Build baseline teams (apply overrides if any)
+function buildBaselineTeams(){
+  const teams = deepClone(BASELINE_TEAMS_DEFAULT);
+  const overrides = loadBaselineVerbOverrides();
+  if(overrides){
+    Object.entries(overrides).forEach(([name,v])=>{
+      if(teams[name]){ teams[name].pos=v.pos; teams[name].imp=v.imp; }
+    });
+  }
+  return teams;
+}
+
+const BASELINE = {
+  id:"baseline", label:"Wave 1 · May 2026", date:"2026-05-06", n:30, isBaseline:true,
+  data:{
+    n:30, wave:"Wave 1/2 · May 2026",
+    global:{Awareness:4.83,Desire:4.38,Knowledge:3.20,Ability:3.05,Reinforcement:3.20},
+    teams: buildBaselineTeams(),
+    rawRows: null, // not available for baseline
+    trainings:{
+      "Specific team activity":{pct:91,n:22},"Critical Thinking in AI":{pct:83,n:6},
+      "Brainstorming Copilot":{pct:70,n:10},"DIY Workshops":{pct:69,n:26},
+      "Self-learning videos":{pct:61,n:23},"External trainer / conference":{pct:52,n:23},
+      "AI Talks":{pct:50,n:18},"Daily Efficiency Copilot":{pct:44,n:18},
+      "AI Hero Lunch & Learn":{pct:38,n:8},"Excel Copilot":{pct:38,n:13},
+      "Kickstart Copilot 365":{pct:32,n:22},"Presentation Copilot":{pct:27,n:15},
+      "Prompting for Teamleaders":{pct:17,n:6}
+    },
+    activities:{"Content Creation":25,"Knowledge Management":18,"Data Analysis":9,"Strategic Planning":7,"Operational Efficiency":4,"Collaboration":2},
+    frequencies:{"Daily":8,"Weekly":12,"Monthly":8}
+  }
+};
+
+// ══════════════════════════════════════════════════════════════════
+// VERSIONING
+// ══════════════════════════════════════════════════════════════════
+const LS_KEY = "adkar_bcm_versions_v2";
+const LS_ACTIVE = "adkar_bcm_active_v2";
+function loadVersions(){ try{return JSON.parse(localStorage.getItem(LS_KEY))||[];}catch(e){return[];} }
+function saveVersions(vs){ try{localStorage.setItem(LS_KEY,JSON.stringify(vs));}catch(e){} }
+function loadActiveIdx(){ try{return parseInt(localStorage.getItem(LS_ACTIVE))||0;}catch(e){return 0;} }
+function saveActiveIdx(i){ try{localStorage.setItem(LS_ACTIVE,String(i));}catch(e){} }
+
+let importedVersions = loadVersions();
+let activeVersionIdx = loadActiveIdx();
+function getAllVersions(){ return [BASELINE,...importedVersions]; }
+function getActiveVersion(){
+  const all=getAllVersions();
+  return all[Math.min(activeVersionIdx,all.length-1)]||BASELINE;
+}
+function setActiveVersion(idx){ activeVersionIdx=idx; saveActiveIdx(idx); }
+function deleteImportedVersion(idx){
+  importedVersions.splice(idx,1); saveVersions(importedVersions);
+  const all=getAllVersions();
+  if(activeVersionIdx>=all.length){activeVersionIdx=all.length-1;saveActiveIdx(activeVersionIdx);}
+}
+
+// Persist current D verbatims to the right storage
+function persistCurrentVerbatims(){
+  if(activeVersionIdx===0){
+    saveBaselineVerbOverrides(D.teams);
+  } else {
+    const iv=importedVersions[activeVersionIdx-1];
+    if(iv){ iv.data.teams=deepClone(D.teams); saveVersions(importedVersions); }
+  }
+}
+
+let D = getActiveVersion().data;
+
+// ══════════════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════════════
+const DIMS=["Awareness","Desire","Knowledge","Ability","Reinforcement"];
+const C={p:"#5C2D91",pk:"#D12E67",cy:"#00BCEE",or:"#F39200",gr:"#81C747",tl:"#66D2CC"};
+function sc(v){return v>=4.0?"#81C747":v>=3.0?"#F39200":"#D12E67";}
+function scc(v){return v>=4.0?"g":v>=3.0?"o":"r";}
+function avgnull(a){const v=a.filter(x=>x!=null&&!isNaN(x));return v.length?Math.round(100*v.reduce((s,x)=>s+x,0)/v.length)/100:null;}
+function freqMode(a){const c={};a.forEach(f=>{if(f&&f!=="N/A")c[f]=(c[f]||0)+1;});const e=Object.entries(c).sort((a,b)=>b[1]-a[1]);return e[0]?e[0][0]:"N/A";}
+const SKIP_VERB=new Set(["NA","N/A","No idea","/",".","none","None","no","No",""]);
+function cleanVerbs(arr){return(arr||[]).filter(q=>q&&q.trim().length>3&&!SKIP_VERB.has(q.trim()));}
+
+// ══════════════════════════════════════════════════════════════════
+// VERSION BANNER
+// ══════════════════════════════════════════════════════════════════
+function renderVersionBanner(){
+  const all=getAllVersions();
+  document.getElementById("vbanner-pills").innerHTML=all.map((v,i)=>{
+    const isActive=i===activeVersionIdx;
+    return `<span><button class="vpill${isActive?" active":""}" onclick="activateVersion(${i})">${v.label}</button>${!v.isBaseline?`<button class="vdel" title="Delete this wave" onclick="confirmDeleteVersion(${i-1})">✕</button>`:""}</span>`;
+  }).join("");
+}
+
+function activateVersion(idx){
+  setActiveVersion(idx); D=getActiveVersion().data;
+  activeTeam="BCM"; activeVerbatimTeam="__all__"; activeRawTeam="__all__";
+  renderVersionBanner(); renderAll();
+  ["ch-train","ch-freq","ch-act"].forEach(id=>{const el=document.getElementById(id);if(el){const c=Chart.getChart(el);if(c)c.destroy();}});
+  document.getElementById("tab-trainings")._rendered=false;
+  document.getElementById("tab-usage")._rendered=false;
+  if(document.getElementById("tab-trainings").classList.contains("active")) renderTrainings();
+  if(document.getElementById("tab-usage").classList.contains("active")) renderUsage();
+}
+
+function confirmDeleteVersion(importedIdx){
+  if(confirm("Delete this wave from history? This action cannot be undone.")){
+    const globalIdx=importedIdx+1;
+    if(activeVersionIdx===globalIdx){activeVersionIdx=0;saveActiveIdx(0);}
+    else if(activeVersionIdx>globalIdx){activeVersionIdx--;saveActiveIdx(activeVersionIdx);}
+    deleteImportedVersion(importedIdx); D=getActiveVersion().data;
+    activeTeam="BCM"; activeVerbatimTeam="__all__"; activeRawTeam="__all__";
+    renderVersionBanner(); renderAll(); renderHistoryModal();
+    ["ch-train","ch-freq","ch-act"].forEach(id=>{const el=document.getElementById(id);if(el){const c=Chart.getChart(el);if(c)c.destroy();}});
+    document.getElementById("tab-trainings")._rendered=false;
+    document.getElementById("tab-usage")._rendered=false;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// HISTORY MODAL
+// ══════════════════════════════════════════════════════════════════
+function renderHistoryModal(){
+  const all=getAllVersions(), list=document.getElementById("hist-list");
+  if(!list) return;
+  list.innerHTML=all.map((v,i)=>{
+    const isActive=i===activeVersionIdx;
+    return `<div class="hitem${v.isBaseline?" baseline":""}">
+      <div class="hitem-info">
+        <div class="hitem-name">${v.label} ${isActive?'<span class="active-badge">Active</span>':""}</div>
+        <div class="hitem-meta">${v.data.n} respondents · ${Object.keys(v.data.teams).length} teams · ${new Date(v.date).toLocaleDateString("en")}</div>
+      </div>
+      <div style="display:flex;gap:6px;">
+        ${!isActive?`<button class="btn btn-p" style="font-size:11px;padding:5px 11px;" onclick="activateVersion(${i});document.getElementById('hist-modal').classList.remove('on');renderHistoryModal()">Activate</button>`:""}
+        ${!v.isBaseline?`<button class="btn btn-d" style="font-size:11px;padding:5px 11px;" onclick="confirmDeleteVersion(${i-1});document.getElementById('hist-modal').classList.remove('on')">Delete</button>`:""}
+      </div>
+    </div>`;
+  }).join("");
+}
+document.getElementById("hist-modal").addEventListener("click",e=>{if(e.target===document.getElementById("hist-modal"))document.getElementById("hist-modal").classList.remove("on");});
+document.getElementById("imp-modal").addEventListener("click",e=>{if(e.target===document.getElementById("imp-modal"))document.getElementById("imp-modal").classList.remove("on");});
+
+// ══════════════════════════════════════════════════════════════════
+// ADKAR BARS
+// ══════════════════════════════════════════════════════════════════
+function adkarBars(id,scores,showGlobal){
+  document.getElementById(id).innerHTML=DIMS.map(d=>{
+    const s=scores[d]||0,g=D.global[d],pct=(s/5)*100,gp=(g/5)*100;
+    return `<div class="arow"><div class="albl">${d}</div><div class="atrack"><div class="afill" style="width:${pct}%;background:${sc(s)}"></div>${showGlobal?`<div class="agline" style="left:${gp}%"></div>`:""}</div><div class="ascr" style="color:${sc(s)}">${s.toFixed(2)}</div></div>`;
+  }).join("");
+}
+
+// ══════════════════════════════════════════════════════════════════
+// TAB SWITCHING
+// ══════════════════════════════════════════════════════════════════
+let charts={}, activeTeam="BCM";
+let activeVerbatimTeam="__all__", activeRawTeam="__all__";
+
+function switchTab(id){
+  const ids=["global","teams","trainings","usage","verbatim","recs","rawdata"];
+  document.querySelectorAll(".tab").forEach((t,i)=>t.classList.toggle("active",ids[i]===id));
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+  document.getElementById("tab-"+id).classList.add("active");
+  if(id==="trainings"){const el=document.getElementById("tab-trainings");if(!el._rendered){el._rendered=true;renderTrainings();}}
+  if(id==="usage"){const el=document.getElementById("tab-usage");if(!el._rendered){el._rendered=true;renderUsage();}}
+  if(id==="verbatim"){renderVerbatimTab();}
+  if(id==="rawdata"){renderRawData();}
+}
+
+// ══════════════════════════════════════════════════════════════════
+// GLOBAL TAB
+// ══════════════════════════════════════════════════════════════════
+function renderGlobal(){
+  const g=D.global;
+  document.getElementById("sn").textContent=D.n;
+  const used=Object.values(D.teams).reduce((s,t)=>s+Math.round(t.n*(t.used_pct/100)),0);
+  document.getElementById("sui").textContent=Math.round(100*used/D.n)+"%";
+  const hi=Math.max(g.Awareness,g.Desire),lo=Math.min(g.Knowledge,g.Ability,g.Reinforcement),gap=(hi-lo).toFixed(2);
+  document.getElementById("sgap").textContent=gap;
+  document.getElementById("gdlt").innerHTML=`−${gap}<br>pts`;
+  document.getElementById("gap-hi-items").innerHTML=DIMS.filter(d=>g[d]>=4.0).map(d=>`<div class="gitem"><span class="gdim">${d}</span><span class="gscr ${scc(g[d])}">${g[d].toFixed(2)}</span></div>`).join("")||'<div class="gitem"><span class="gdim" style="color:#999">—</span></div>';
+  document.getElementById("gap-lo-items").innerHTML=DIMS.filter(d=>g[d]<4.0).map(d=>`<div class="gitem"><span class="gdim">${d}</span><span class="gscr ${scc(g[d])}">${g[d].toFixed(2)}</span></div>`).join("")||'<div class="gitem"><span class="gdim" style="color:#999">—</span></div>';
+  adkarBars("g-bars",g);
+  document.getElementById("cmp-body").innerHTML=
+    Object.entries(D.teams).map(([name,t])=>`<tr><td>${name} <span style="color:#999;font-weight:400;">(n=${t.n})</span></td>${DIMS.map(d=>`<td style="color:${sc(t[d])};font-weight:700;">${(t[d]||0).toFixed(2)}</td>`).join("")}</tr>`).join("")+
+    `<tr class="glb"><td>BCM Global</td>${DIMS.map(d=>`<td>${g[d].toFixed(2)}</td>`).join("")}</tr>`;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// TEAMS TAB
+// ══════════════════════════════════════════════════════════════════
+function renderTeamsPills(){
+  const teamNames = Object.keys(D.teams);
+  // BCM pill first (special style), then individual teams
+  const bcmPill = `<div class="pill${activeTeam==="BCM"?" active":""}" data-t="BCM" onclick="pickTeam(this)" style="${activeTeam!=="BCM"?"border-color:#D12E67;color:#D12E67;":""}">🏢 BCM (all)</div>`;
+  const teamPills = teamNames.map(name=>`<div class="pill${name===activeTeam?" active":""}" data-t="${name}" onclick="pickTeam(this)">${name}</div>`).join("");
+  document.getElementById("t-pills").innerHTML = bcmPill + teamPills;
+}
+function pickTeam(el){
+  activeTeam=el.dataset.t;
+  document.querySelectorAll(".pill").forEach(p=>{
+    const isBCM = p.dataset.t==="BCM";
+    const isActive = p.dataset.t===activeTeam;
+    p.classList.toggle("active", isActive);
+    if(isBCM && !isActive) p.style.cssText="border-color:#D12E67;color:#D12E67;";
+    else if(isBCM && isActive) p.style.cssText="";
+  });
+  renderTeamDetail();
+}
+function renderTeamDetail(){
+  if(activeTeam==="BCM"){
+    // ── BCM aggregate view ──────────────────────────────────────
+    const g=D.global, allTeams=Object.values(D.teams);
+    document.getElementById("t-title").textContent=`BCM — All Teams (n=${D.n}) — ADKAR Scores`;
+    // Bars show global scores with no comparison line (it IS the global)
+    adkarBars("t-bars", g, false);
+    // Aggregate usage
+    const totalUsed=allTeams.reduce((s,t)=>s+Math.round(t.n*(t.used_pct/100)),0);
+    const globalUsedPct=Math.round(100*totalUsed/D.n);
+    const allFreqs=allTeams.flatMap(t=>t.freq||[]);
+    const fm=freqMode(allFreqs);
+    document.getElementById("t-usage").innerHTML=`
+      <div class="urow">
+        <div class="ublock"><div class="un">${globalUsedPct}%</div><div class="ul">have used AI</div></div>
+        <div class="ublock"><div class="un" style="font-size:16px;">${fm}</div><div class="ul">dominant frequency</div></div>
+      </div>
+      <div style="font-size:11px;color:#888;margin-top:6px;">Individual team breakdown in the 📈 Usage tab</div>`;
+    // Verbatim: show a sample from each team
+    const allQ=allTeams.flatMap(t=>[...cleanVerbs(t.pos).map(q=>({type:"✅",q})),...cleanVerbs(t.imp).map(q=>({type:"💡",q}))]);
+    document.getElementById("t-quotes").innerHTML=
+      `<div style="font-size:10.5px;color:#888;margin-bottom:8px;">Showing up to 3 quotes per category across all teams. See full verbatim in the 💬 Verbatim tab.</div>`+
+      allQ.slice(0,10).map(v=>`<div class="qbox"><div class="qtype">${v.type}</div>"${v.q}"</div>`).join("")||
+      `<div style="font-size:12px;color:#999">No verbatim available.</div>`;
+    return;
+  }
+  // ── Individual team view ─────────────────────────────────────
+  const t=D.teams[activeTeam]; if(!t) return;
+  document.getElementById("t-title").textContent=`${activeTeam} (n=${t.n}) — ADKAR Scores`;
+  adkarBars("t-bars",t,true);
+  const fm=freqMode(t.freq||[]);
+  document.getElementById("t-usage").innerHTML=`<div class="urow"><div class="ublock"><div class="un">${t.used_pct}%</div><div class="ul">have used AI</div></div><div class="ublock"><div class="un" style="font-size:16px;">${fm}</div><div class="ul">dominant frequency</div></div></div><div>${(t.freq||[]).filter(f=>f&&f!=="N/A").map(f=>`<span style="display:inline-block;background:#eee;border-radius:4px;padding:1px 6px;margin:2px;font-size:10px;">${f}</span>`).join("")}</div>`;
+  const all=[...cleanVerbs(t.pos).map(q=>({type:"✅ Positive point",q})),...cleanVerbs(t.imp).map(q=>({type:"💡 Improvement area",q}))];
+  document.getElementById("t-quotes").innerHTML=all.map(v=>`<div class="qbox"><div class="qtype">${v.type}</div>"${v.q}"</div>`).join("")||`<div style="font-size:12px;color:#999">No verbatim available.</div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// TRAININGS TAB
+// ══════════════════════════════════════════════════════════════════
+function renderTrainings(){
+  const el=document.getElementById("ch-train");
+  const ex=Chart.getChart(el); if(ex) ex.destroy();
+  const sorted=Object.entries(D.trainings).sort((a,b)=>b[1].pct-a[1].pct);
+  new Chart(el.getContext("2d"),{type:"bar",data:{labels:sorted.map(([l])=>l),datasets:[{data:sorted.map(([,v])=>v.pct),backgroundColor:sorted.map(([,v])=>v.pct>=70?"#81C747":v.pct>=40?"#F39200":"#D12E67"),borderRadius:4}]},options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw}% rated useful (n=${sorted[c.dataIndex][1].n})`}}},scales:{x:{max:100,ticks:{callback:v=>v+"%"},grid:{color:"#eee"}},y:{ticks:{font:{size:11}}}}}});
+  const top2=sorted.slice(0,2).map(([l,v])=>`<em>${l}</em> (${v.pct}%)`);
+  const toReview=sorted.filter(([,v])=>v.pct<40).map(([l])=>l);
+  document.getElementById("train-alert").innerHTML=`ℹ️ Best-rated formats: ${top2.join(" and ")}. `+(toReview.length?`Formats to revise (< 40%): ${toReview.map(l=>`<strong>${l}</strong>`).join(", ")}.`:"No format below the critical 40% threshold.");
+}
+
+// ══════════════════════════════════════════════════════════════════
+// USAGE TAB
+// ══════════════════════════════════════════════════════════════════
+function renderUsage(){
+  ["ch-freq","ch-act"].forEach(id=>{const el=document.getElementById(id);const c=Chart.getChart(el);if(c)c.destroy();});
+  const fkeys=["Daily","Weekly","Monthly"],fvals=fkeys.map(k=>D.frequencies[k]||0);
+  new Chart(document.getElementById("ch-freq").getContext("2d"),{type:"bar",data:{labels:fkeys,datasets:[{data:fvals,backgroundColor:[C.p,C.cy,C.or],borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{stepSize:2},grid:{color:"#eee"}}}}});
+  const acts=Object.entries(D.activities||{}).sort((a,b)=>b[1]-a[1]);
+  new Chart(document.getElementById("ch-act").getContext("2d"),{type:"bar",data:{labels:acts.map(([l])=>l),datasets:[{data:acts.map(([,v])=>v),backgroundColor:[C.p,C.cy,C.or,C.gr,C.tl,C.pk],borderRadius:4}]},options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:"#eee"}},y:{ticks:{font:{size:10}}}}}});
+  document.getElementById("u-body").innerHTML=Object.entries(D.teams).map(([name,t])=>`<tr><td>${name}</td><td>${t.n}</td><td style="font-weight:700;color:${(t.used_pct||0)>=90?"#4a8a00":"#906000"}">${t.used_pct||0}%</td><td>${freqMode(t.freq||[])}</td></tr>`).join("");
+}
+
+// ══════════════════════════════════════════════════════════════════
+// VERBATIM TAB — with move buttons
+// ══════════════════════════════════════════════════════════════════
+function renderVerbatimTab(){
+  const teamNames=Object.keys(D.teams);
+  document.getElementById("vteam-selector").innerHTML=
+    `<button class="vteam-pill all${activeVerbatimTeam==="__all__"?" active":""}" onclick="selectVerbatimTeam('__all__')">All teams</button>`+
+    teamNames.map(name=>`<button class="vteam-pill${activeVerbatimTeam===name?" active":""}" onclick="selectVerbatimTeam('${name.replace(/'/g,"\\'")}'">${name}</button>`).join("");
+
+  const teamsToShow=activeVerbatimTeam==="__all__"?teamNames:[activeVerbatimTeam];
+  const showLabel=activeVerbatimTeam==="__all__";
+
+  document.getElementById("verbatim-content").innerHTML=teamsToShow.map(name=>{
+    const t=D.teams[name];
+    const pos=cleanVerbs(t.pos), imp=cleanVerbs(t.imp);
+    const posHtml=pos.length
+      ? pos.map((q,qi)=>`<div class="vq pos">${showLabel?`<div class="vq-team">${name}</div>`:""}<div class="vq-text">"${escHtml(q)}"</div><button class="vq-move" onclick="moveQuote('${escAttr(name)}','pos',${qi})">→ Move to Improvements</button></div>`).join("")
+      : `<div class="vempty">No positive comments recorded.</div>`;
+    const impHtml=imp.length
+      ? imp.map((q,qi)=>`<div class="vq imp">${showLabel?`<div class="vq-team">${name}</div>`:""}<div class="vq-text">"${escHtml(q)}"</div><button class="vq-move" onclick="moveQuote('${escAttr(name)}','imp',${qi})">← Move to Positives</button></div>`).join("")
+      : `<div class="vempty">No improvement suggestions recorded.</div>`;
+    return `<div class="vteam-block">
+      ${showLabel?`<div class="vteam-block-title">${name} <span style="color:#888;font-weight:400;font-size:11px;">(n=${t.n})</span></div>`:""}
+      <div class="vcols">
+        <div><div class="vcol-head"><div class="vcol-icon pos">✅</div><span class="vcol-title pos">Positive points <span class="vcount">${pos.length}</span></span></div>${posHtml}</div>
+        <div><div class="vcol-head"><div class="vcol-icon imp">💡</div><span class="vcol-title imp">Improvement areas <span class="vcount imp">${imp.length}</span></span></div>${impHtml}</div>
+      </div>
+    </div>`;
+  }).join("<hr style='border:none;border-top:1px solid #e0e0e0;margin:4px 0 20px;'>");
+}
+
+function selectVerbatimTeam(name){
+  activeVerbatimTeam=name; renderVerbatimTab();
+}
+
+function moveQuote(teamName, fromType, idx){
+  const t=D.teams[teamName]; if(!t) return;
+  const fromArr=cleanVerbs(t[fromType]);
+  const quote=fromArr[idx]; if(!quote) return;
+  // Remove from source (match by value in full array)
+  const srcFull=t[fromType];
+  const matchIdx=srcFull.findIndex(q=>q===quote);
+  if(matchIdx===-1) return;
+  srcFull.splice(matchIdx,1);
+  // Add to destination
+  const toType=fromType==="pos"?"imp":"pos";
+  t[toType].push(quote);
+  // Persist
+  persistCurrentVerbatims();
+  // Re-render verbatim tab + by-team preview
+  renderVerbatimTab();
+  renderTeamDetail();
+}
+
+function escHtml(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function escAttr(s){return s.replace(/'/g,"\\'");}
+
+// ══════════════════════════════════════════════════════════════════
+// RAW DATA TAB
+// ══════════════════════════════════════════════════════════════════
+function renderRawData(){
+  const content=document.getElementById("rawdata-content");
+  const rawRows=D.rawRows;
+
+  if(!rawRows){
+    content.innerHTML=`<div class="raw-notice"><strong>📋 Raw Data not available for Wave 1 baseline</strong>Individual response rows are captured automatically when you import a CSV file.<br><br>Import a new wave to see individual answers here.</div>`;
+    return;
+  }
+
+  const teamNames=["__all__",...new Set(rawRows.map(r=>r.team))];
+  const filtered=activeRawTeam==="__all__"?rawRows:rawRows.filter(r=>r.team===activeRawTeam);
+
+  const toolbar=`<div class="raw-toolbar">${teamNames.map(name=>`<button class="raw-pill${activeRawTeam===name?" active":""}" onclick="selectRawTeam('${escAttr(name)}')">${name==="__all__"?"All teams":name}</button>`).join("")}<span style="font-size:11px;color:#888;margin-left:auto;">${filtered.length} respondent${filtered.length!==1?"s":""}</span></div>`;
+
+  const rows=filtered.map((r,i)=>`<tr>
+    <td>${i+1}</td>
+    <td>${r.team}</td>
+    <td style="color:${sc(r.Awareness)};font-weight:700;">${r.Awareness!=null?r.Awareness.toFixed(2):"—"}</td>
+    <td style="color:${sc(r.Desire)};font-weight:700;">${r.Desire!=null?r.Desire.toFixed(2):"—"}</td>
+    <td style="color:${sc(r.Knowledge)};font-weight:700;">${r.Knowledge!=null?r.Knowledge.toFixed(2):"—"}</td>
+    <td style="color:${sc(r.Ability)};font-weight:700;">${r.Ability!=null?r.Ability.toFixed(2):"—"}</td>
+    <td style="color:${sc(r.Reinforcement)};font-weight:700;">${r.Reinforcement!=null?r.Reinforcement.toFixed(2):"—"}</td>
+    <td>${r.used?"Yes":"No"}</td>
+    <td>${r.freq||"—"}</td>
+    <td style="text-align:left;font-size:10.5px;">${(r.activities||[]).join(", ")||"—"}</td>
+    <td class="comment">${r.pos_comment?`"${escHtml(r.pos_comment)}"`:""}</td>
+    <td class="comment">${r.imp_comment?`"${escHtml(r.imp_comment)}"`:""}</td>
+  </tr>`).join("");
+
+  content.innerHTML=toolbar+`<div class="raw-table-wrap"><table class="raw-table"><thead><tr>
+    <th>#</th><th>Team</th><th>Awareness</th><th>Desire</th><th>Knowledge</th><th>Ability</th><th>Reinforcement</th>
+    <th>Used AI</th><th>Frequency</th><th>Activities</th><th>Positive comment</th><th>Improvement comment</th>
+  </tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function selectRawTeam(name){
+  activeRawTeam=name; renderRawData();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// RECOMMENDATIONS
+// ══════════════════════════════════════════════════════════════════
+function computeTeamRanking(){
+  return Object.entries(D.teams).map(([name,t])=>({name,t,karAvg:avgnull([t.Knowledge,t.Ability,t.Reinforcement])})).sort((a,b)=>a.karAvg-b.karAvg);
+}
+function renderRecs(){
+  const g=D.global,hi=Math.max(g.Awareness,g.Desire),lo=Math.min(g.Knowledge,g.Ability,g.Reinforcement),gap=(hi-lo).toFixed(2);
+  const ranking=computeTeamRanking(),weakest=ranking[0],strongest=ranking[ranking.length-1];
+  const lowAbility=ranking.slice(0,2).map(r=>r.name);
+  const trainSorted=Object.entries(D.trainings).sort((a,b)=>b[1].pct-a[1].pct);
+  const topFormats=trainSorted.filter(([,v])=>v.pct>=70).map(([l])=>l);
+  const lowFormats=trainSorted.filter(([,v])=>v.pct<40).map(([l])=>l);
+  const totalUsed=Object.values(D.teams).reduce((s,t)=>s+Math.round(t.n*(t.used_pct/100)),0);
+  const usedPct=Math.round(100*totalUsed/D.n);
+  document.getElementById("auto-ins").innerHTML=`💡 <strong>Automated analysis (active wave):</strong> Knowing-Doing Gap = <strong>${gap} pts</strong> · ${usedPct}% of respondents have used AI · Priority team: <strong>${weakest.name}</strong> (K/A/R = ${weakest.karAvg.toFixed(2)}) · Suggested ambassador: <strong>${strongest.name}</strong> (K/A/R = ${strongest.karAvg.toFixed(2)})`;
+  const wt=weakest.t;
+  const cards=[
+    {num:"01",title:"Team-specific training",desc:topFormats.length?`Formats rated highest: <span class="rchip ok">${topFormats.slice(0,2).join("</span> <span class='rchip ok'>")}</span> (≥ 70%). `+(lowFormats.length?`To revise: <span class="rchip warn">${lowFormats.slice(0,2).join("</span> <span class='rchip warn'>")}</span>. `:"")+"Replace generic sessions with workshops anchored in each team's real use cases.":`Build team-specific sessions around real job use cases — most valued format is <span class="rchip ok">${trainSorted[0][0]}</span>.`},
+    {num:"02",title:"Build a centralised AI hub",desc:`A clear catalogue of recommended tools with role-specific use cases — recurring request across verbatims. Particularly critical for <span class="rchip warn">${lowAbility.join("</span> and <span class='rchip warn'>")}</span>, whose Ability scores (${lowAbility.map(n=>(D.teams[n].Ability||0).toFixed(2)).join(" / ")}) signal a lack of tool access.`},
+    {num:"03",title:`Priority support — ${weakest.name}`,desc:`<span class="rchip warn">${weakest.name}</span> has the lowest K/A/R scores: Knowledge ${wt.Knowledge.toFixed(2)} · Ability ${wt.Ability.toFixed(2)} · Reinforcement ${wt.Reinforcement.toFixed(2)}. Reinforcement = ${wt.Reinforcement.toFixed(2)} is the strongest warning signal. Concrete job-specific workshops and guaranteed tool access are essential.`},
+    {num:"04",title:"Scale up peer-to-peer learning",desc:`<span class="rchip ok">${strongest.name}</span> (K/A/R = ${strongest.karAvg.toFixed(2)}) is the most advanced team — ideal as internal ambassador. Structure knowledge transfer toward <span class="rchip warn">${weakest.name}</span> and intermediate teams. ${usedPct<90?`With ${100-usedPct}% non-users, peer-to-peer can remove the last barriers to adoption.`:"The high usage rate ("+usedPct+"%) confirms overall maturity — build on it."}`}
+  ];
+  document.getElementById("recs-grid").innerHTML=cards.map(c=>`<div class="rcard"><div class="rnum">${c.num}</div><div class="rtitle">${c.title}</div><div class="rdesc">${c.desc}</div></div>`).join("");
+  const waveLabel=getActiveVersion().label;
+  document.getElementById("tl-body").innerHTML=`
+    <div class="tl-item"><div class="tl-dot"></div><span class="tl-date">Short term</span><span class="tl-act">Team working sessions to co-build job-specific use cases — priority on <strong>${weakest.name}</strong></span></div>
+    <div class="tl-item"><div class="tl-dot"></div><span class="tl-date">Medium term</span><span class="tl-act">Launch centralised AI hub: tool catalogue + role-based tutorials (focus on ${lowAbility.join(", ")})</span></div>
+    <div class="tl-item"><div class="tl-dot"></div><span class="tl-date">Ongoing</span><span class="tl-act">Ambassador programme: <strong>${strongest.name}</strong> as internal reference for ${weakest.name} and intermediate teams</span></div>
+    <div class="tl-item"><div class="tl-dot"></div><span class="tl-date">Next wave</span><span class="tl-act">New ADKAR survey — measure progress vs <em>${waveLabel}</em>. Import the CSV here for automatic comparison.</span></div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// CSV IMPORT — stores rawRows per respondent
+// ══════════════════════════════════════════════════════════════════
+function parseCSVFull(text){
+  const firstLine=text.split("\n")[0];
+  const delim=(firstLine.split(";").length>firstLine.split(",").length)?";":",";
+  const records=[]; let cur=[],field="",inq=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i],nx=text[i+1];
+    if(inq){if(ch==='"'&&nx==='"'){field+='"';i++;}else if(ch==='"'){inq=false;}else{field+=ch;}}
+    else{if(ch==='"'){inq=true;}else if(ch===delim){cur.push(field.trim());field="";}else if(ch==="\n"){cur.push(field.trim());field="";if(cur.some(c=>c!==""))records.push(cur);cur=[];}else if(ch==="\r"){}else{field+=ch;}}
+  }
+  if(field||cur.length>0){cur.push(field.trim());if(cur.some(c=>c!==""))records.push(cur);}
+  return records;
+}
+
+const AMAP={"Content Creation":"Content Creation","Knowledge Management":"Knowledge Management","Data Analysis":"Data Analysis","Strategic Planning":"Strategic Planning","Operational Efficiency":"Operational Efficiency","Collaboration":"Collaboration"};
+
+function importCSV(){
+  const file=document.getElementById("csv-input").files[0];
+  if(!file){alert("Please select a CSV file.");return;}
+  const rawName=document.getElementById("wave-name-input").value.trim();
+  const waveName=rawName||`Imported wave · ${new Date().toLocaleDateString("en")}`;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const allRows=parseCSVFull(e.target.result);
+      const recs=allRows.slice(1).filter(r=>r[6]&&r[6].trim()&&r[6]!=="Which team");
+      const nd={n:recs.length,wave:waveName,global:{},teams:{},rawRows:[],trainings:BASELINE.data.trainings,activities:{},frequencies:{}};
+      const gdims={Awareness:[],Desire:[],Knowledge:[],Ability:[],Reinforcement:[]};
+      const tm={},ac={},fc={};
+
+      recs.forEach((r,ri)=>{
+        const nv=v=>{const x=parseFloat(v);return isNaN(x)?null:x;};
+        const acts=(r[35]||"").split(";").map(a=>{const k=Object.keys(AMAP).find(k=>a.includes(k));return k?AMAP[k]:null;}).filter(Boolean);
+        const posComment=[r[36]].find(x=>x&&x.length>3&&!["NA","N/A","No idea","/","."].includes(x.trim()))||"";
+        const impComment=[r[37]].find(x=>x&&x.length>3&&!["NA","N/A","No idea","/","."].includes(x.trim()))||"";
+        const rec={
+          id:ri+1, team:r[6],
+          Awareness:avgnull([nv(r[7]),nv(r[8])]),
+          Desire:avgnull([nv(r[9]),nv(r[10])]),
+          Knowledge:avgnull([nv(r[11]),nv(r[12])]),
+          Ability:avgnull([nv(r[27]),nv(r[28])]),
+          Reinforcement:nv(r[29]),
+          used:r[33]==="Yes", freq:r[34]||"N/A",
+          activities:acts,
+          pos_comment:posComment, imp_comment:impComment,
+          pos:posComment?[posComment]:[],
+          imp:impComment?[impComment]:[],
+        };
+        nd.rawRows.push({id:rec.id,team:rec.team,Awareness:rec.Awareness,Desire:rec.Desire,Knowledge:rec.Knowledge,Ability:rec.Ability,Reinforcement:rec.Reinforcement,used:rec.used,freq:rec.freq,activities:rec.activities,pos_comment:posComment,imp_comment:impComment});
+        DIMS.forEach(d=>{if(rec[d]!=null)gdims[d].push(rec[d]);});
+        if(!tm[rec.team])tm[rec.team]={n:0,Awareness:[],Desire:[],Knowledge:[],Ability:[],Reinforcement:[],used:[],freq:[],pos:[],imp:[]};
+        const t=tm[rec.team];t.n++;
+        DIMS.forEach(d=>{if(rec[d]!=null)t[d].push(rec[d]);});
+        t.used.push(rec.used);t.freq.push(rec.freq);
+        rec.pos.forEach(q=>t.pos.push(q));rec.imp.forEach(q=>t.imp.push(q));
+        acts.forEach(a=>{ac[a]=(ac[a]||0)+1;});
+        if(rec.freq&&rec.freq!=="N/A")fc[rec.freq]=(fc[rec.freq]||0)+1;
+      });
+
+      DIMS.forEach(d=>{nd.global[d]=avgnull(gdims[d]);});
+      Object.entries(tm).forEach(([name,t])=>{
+        nd.teams[name]={n:t.n,Awareness:avgnull(t.Awareness),Desire:avgnull(t.Desire),Knowledge:avgnull(t.Knowledge),Ability:avgnull(t.Ability),Reinforcement:avgnull(t.Reinforcement),used_pct:Math.round(100*t.used.filter(Boolean).length/t.n),freq:t.freq,pos:t.pos,imp:t.imp};
+      });
+      nd.activities=ac;nd.frequencies=fc;
+
+      const newVersion={id:"v_"+Date.now(),label:waveName,date:new Date().toISOString().slice(0,10),n:recs.length,isBaseline:false,data:nd};
+      importedVersions.push(newVersion); saveVersions(importedVersions);
+      const newIdx=getAllVersions().length-1; setActiveVersion(newIdx); D=newVersion.data;
+      activeTeam="BCM"; activeVerbatimTeam="__all__"; activeRawTeam="__all__";
+      document.getElementById("tab-trainings")._rendered=false;
+      document.getElementById("tab-usage")._rendered=false;
+      ["ch-train","ch-freq","ch-act"].forEach(id=>{const el=document.getElementById(id);if(el){const c=Chart.getChart(el);if(c)c.destroy();}});
+      renderVersionBanner(); renderAll();
+      document.getElementById("imp-modal").classList.remove("on");
+      document.getElementById("wave-name-input").value="";
+      document.getElementById("csv-input").value="";
+      alert(`✅ "${waveName}" saved — ${recs.length} respondents loaded. This wave will remain available in future sessions.`);
+    }catch(err){alert("Import error: "+err.message);}
+  };
+  reader.readAsText(file,"UTF-8");
+}
+
+// ══════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════
+function renderAll(){
+  activeVerbatimTeam="__all__"; activeRawTeam="__all__";
+  renderGlobal(); renderTeamsPills(); renderTeamDetail(); renderRecs(); renderHistoryModal();
+  if(document.getElementById("tab-verbatim").classList.contains("active")) renderVerbatimTab();
+  if(document.getElementById("tab-rawdata").classList.contains("active")) renderRawData();
+}
+renderVersionBanner();
+renderAll();
+</script>
+</body>
+</html>
