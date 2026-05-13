@@ -17,6 +17,21 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:Arial,sans-serif;background:#f4f4f6;color:#222;min-height:100vh;}
 
+/* ── Password gate ───────────────────────────────────────────────── */
+#pw-gate{position:fixed;inset:0;background:linear-gradient(135deg,#5C2D91 0%,#D12E67 100%);z-index:9999;display:flex;align-items:center;justify-content:center;}
+.pw-box{background:#fff;border-radius:16px;padding:36px 32px;width:360px;max-width:90vw;box-shadow:0 8px 40px rgba(0,0,0,.25);text-align:center;}
+.pw-logo{font-size:32px;margin-bottom:10px;}
+.pw-title{font-size:18px;font-weight:700;color:#5C2D91;margin-bottom:4px;}
+.pw-sub{font-size:12px;color:#888;margin-bottom:24px;}
+.pw-input{width:100%;border:2px solid #ddd;border-radius:8px;padding:11px 14px;font-size:14px;outline:none;transition:border-color .2s;text-align:center;letter-spacing:2px;}
+.pw-input:focus{border-color:#5C2D91;}
+.pw-input.err{border-color:#D12E67;animation:shake .3s;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.pw-btn{margin-top:14px;width:100%;background:linear-gradient(135deg,#5C2D91,#D12E67);color:#fff;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .15s;}
+.pw-btn:hover{opacity:.9;}
+.pw-err{color:#D12E67;font-size:12px;margin-top:10px;min-height:18px;}
+.pw-hint{font-size:11px;color:#bbb;margin-top:18px;}
+
 /* ── Header ──────────────────────────────────────────────────────── */
 .hdr{background:linear-gradient(135deg,#5C2D91,#D12E67);padding:14px 20px;color:#fff;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
 .hdr h1{font-size:18px;font-weight:300;line-height:1.3;}
@@ -191,6 +206,19 @@ tr.glb td{background:#D4C5E8;font-weight:700;}
 </style>
 </head>
 <body>
+
+<!-- Password gate -->
+<div id="pw-gate">
+  <div class="pw-box">
+    <div class="pw-logo">🔒</div>
+    <div class="pw-title">AI ADKAR Dashboard</div>
+    <div class="pw-sub">BCM / CBU · Communication, Branding &amp; Media</div>
+    <input type="password" id="pw-input" class="pw-input" placeholder="Enter password" onkeydown="if(event.key==='Enter')checkPw()">
+    <button class="pw-btn" onclick="checkPw()">Access dashboard →</button>
+    <div class="pw-err" id="pw-err"></div>
+    <div class="pw-hint">Contact Jérôme if you need access.</div>
+  </div>
+</div>
 
 <!-- Header -->
 <div class="hdr">
@@ -918,6 +946,35 @@ function importCSV(){
     }catch(err){alert("Import error: "+err.message);}
   };
   reader.readAsText(file,"UTF-8");
+}
+
+// ══════════════════════════════════════════════════════════════════
+// PASSWORD GATE
+// ══════════════════════════════════════════════════════════════════
+const PW_HASH = "bcm2026ai"; // ← change this to your chosen password
+const PW_KEY  = "adkar_bcm_auth_v1";
+
+function checkPw(){
+  const val = document.getElementById("pw-input").value.trim();
+  const errEl = document.getElementById("pw-err");
+  const inp   = document.getElementById("pw-input");
+  if(val === PW_HASH){
+    sessionStorage.setItem(PW_KEY,"1");
+    document.getElementById("pw-gate").style.display="none";
+  } else {
+    errEl.textContent="Incorrect password. Please try again.";
+    inp.classList.add("err");
+    inp.value="";
+    setTimeout(()=>inp.classList.remove("err"), 400);
+  }
+}
+
+// On load: skip gate if already authenticated this session
+if(sessionStorage.getItem(PW_KEY)==="1"){
+  document.getElementById("pw-gate").style.display="none";
+} else {
+  // Prevent dashboard from rendering until unlocked — defer init
+  setTimeout(()=>document.getElementById("pw-input").focus(), 100);
 }
 
 // ══════════════════════════════════════════════════════════════════
